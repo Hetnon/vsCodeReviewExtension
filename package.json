@@ -1,0 +1,216 @@
+{
+  "name": "file-reviewed-tracker",
+  "displayName": "File Reviewed Tracker",
+  "description": "Track which changed files you have already reviewed, from the Explorer and Source Control panes. Reviewed marks clear automatically when a file changes.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "scmReviewed.markReviewed",
+        "title": "Mark as Reviewed",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.unmarkReviewed",
+        "title": "Unmark as Reviewed",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.markFolderRecursive",
+        "title": "Mark All Files in Folder as Reviewed",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.unmarkFolderRecursive",
+        "title": "Unmark All Files in Folder",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.markFolderChildren",
+        "title": "Mark Immediate Children as Reviewed",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.unmarkFolderChildren",
+        "title": "Unmark Immediate Children",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.markAllChanged",
+        "title": "Mark All Currently Changed Files as Reviewed",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.clearAll",
+        "title": "Clear All Reviewed Marks",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.listReviewed",
+        "title": "List Reviewed Files",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.refreshReviewed",
+        "title": "Refresh Reviewed Files",
+        "category": "SCM Reviewed",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "scmReviewed.removeEntry",
+        "title": "Remove From Reviewed",
+        "category": "SCM Reviewed",
+        "icon": "$(close)"
+      }
+    ],
+    "menus": {
+      "scm/resourceState/context": [
+        {
+          "command": "scmReviewed.markReviewed",
+          "when": "config.scmReviewed.showScmContextMenu",
+          "group": "9_reviewed@1"
+        },
+        {
+          "command": "scmReviewed.unmarkReviewed",
+          "when": "config.scmReviewed.showScmContextMenu",
+          "group": "9_reviewed@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "scmReviewed.markReviewed",
+          "when": "!explorerResourceIsFolder",
+          "group": "9_reviewed@1"
+        },
+        {
+          "command": "scmReviewed.unmarkReviewed",
+          "when": "!explorerResourceIsFolder",
+          "group": "9_reviewed@2"
+        },
+        {
+          "command": "scmReviewed.markFolderRecursive",
+          "when": "explorerResourceIsFolder",
+          "group": "9_reviewed@1"
+        },
+        {
+          "command": "scmReviewed.unmarkFolderRecursive",
+          "when": "explorerResourceIsFolder",
+          "group": "9_reviewed@2"
+        },
+        {
+          "command": "scmReviewed.markFolderChildren",
+          "when": "explorerResourceIsFolder",
+          "group": "9_reviewed@3"
+        },
+        {
+          "command": "scmReviewed.unmarkFolderChildren",
+          "when": "explorerResourceIsFolder",
+          "group": "9_reviewed@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "scmReviewed.refreshReviewed",
+          "when": "view == scmReviewed.reviewedFiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "scmReviewed.clearAll",
+          "when": "view == scmReviewed.reviewedFiles",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "scmReviewed.removeEntry",
+          "when": "view == scmReviewed.reviewedFiles && viewItem == reviewedFile",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "scmReviewed.markReviewed",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.unmarkReviewed",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.markFolderRecursive",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.unmarkFolderRecursive",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.markFolderChildren",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.unmarkFolderChildren",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.removeEntry",
+          "when": "false"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "scmReviewed.reviewedFiles",
+          "name": "Reviewed Files",
+          "contextualTitle": "Reviewed Files"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "File Reviewed Tracker",
+      "properties": {
+        "scmReviewed.showExplorerDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the green reviewed tick as a file decoration in the Explorer. The Source Control pane shares the same file-decoration mechanism, so this also controls the tick shown there."
+        },
+        "scmReviewed.showScmContextMenu": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Mark/Unmark as Reviewed actions in the Source Control resource context menu."
+        },
+        "scmReviewed.autoClearOnChange": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically clear a file's reviewed mark when its content changes after being marked."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test:pure": "npm run compile && node --test \"out/test/**/*.test.js\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
