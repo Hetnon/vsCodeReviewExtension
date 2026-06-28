@@ -137,14 +137,17 @@ npm run test:pure
   decoration and the full context-menu support still function, and status-bar
   feedback confirms each mark.
 
-- **`when` clauses cannot read per-file custom state.** Context-menu visibility
-  conditions can test things like `explorerResourceIsFolder` or `scmProvider`,
-  but there is no way to make "Mark as Reviewed" appear only for unreviewed files
-  and "Unmark" only for reviewed ones, because a `when` clause cannot evaluate a
-  per-resource value owned by this extension (and we cannot set `contextValue` on
-  the Git extension's resource states). Both items are therefore always shown;
-  each is idempotent (marking an already-reviewed file just refreshes its
-  fingerprint, unmarking an unreviewed file is a no-op).
+- **Per-file menu visibility via the `in` operator.** A `when` clause cannot read
+  an arbitrary per-resource value owned by this extension, and we cannot set
+  `contextValue` on the Git extension's resource states. The workaround is the
+  `in` when-clause operator: the extension publishes the set of reviewed paths to
+  a context key (`scmReviewed.reviewedPaths`) and the menus test
+  `resourcePath in scmReviewed.reviewedPaths`. So **Mark as Reviewed** shows only
+  on unreviewed files and **Unmark as Reviewed** only on reviewed ones, in both
+  panes. Caveat: with a multi-selection the clause is evaluated against the file
+  you right-click, while the command applies to the whole selection — so
+  right-clicking a reviewed file in a mixed selection shows "Unmark" yet acts on
+  all selected. The handlers remain idempotent regardless.
 
 - **Marking does not require an active editor.** Files are hashed via
   `workspace.fs.readFile`, so marking works on files that are not open.

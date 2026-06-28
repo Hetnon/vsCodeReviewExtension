@@ -5,6 +5,9 @@ import { Logger } from './logger';
 import { makeLookupKey, normalizeRelativePath } from './pathUtils';
 
 const STORAGE_KEY = 'scmReviewed.entries.v1';
+// Context key consumed by menu `when` clauses via the `in` operator, e.g.
+// `resourcePath in scmReviewed.reviewedPaths`. Holds reviewed URI paths as object keys.
+const CONTEXT_KEY = 'scmReviewed.reviewedPaths';
 
 /**
  * Owns the reviewed-state map, its persistence in workspaceState, and the
@@ -140,7 +143,20 @@ export class ReviewedStateManager {
       return;
     }
     await this.context.workspaceState.update(STORAGE_KEY, [...this.entries.values()]);
+    this.updateContextKey();
     this.changeEmitter.fire(changed);
+  }
+
+  /** Publish reviewed URI paths so menu `when` clauses can show the right Mark/Unmark item. */
+  private updateContextKey(): void {
+    const reviewedPaths: Record<string, true> = {};
+    for (const entry of this.entries.values()) {
+      const uri = this.uriForEntry(entry);
+      if (uri) {
+        reviewedPaths[uri.path] = true;
+      }
+    }
+    void vscode.commands.executeCommand('setContext', CONTEXT_KEY, reviewedPaths);
   }
 
   private load(): void {
@@ -148,6 +164,7 @@ export class ReviewedStateManager {
     for (const entry of stored) {
       this.entries.set(makeLookupKey(entry.relativePath), entry);
     }
+    this.updateContextKey();
     this.logger.info(`Loaded ${this.entries.size} reviewed entries from workspace state.`);
   }
 }

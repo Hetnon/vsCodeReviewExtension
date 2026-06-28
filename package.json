@@ -81,24 +81,24 @@
       "scm/resourceState/context": [
         {
           "command": "scmReviewed.markReviewed",
-          "when": "config.scmReviewed.showScmContextMenu",
+          "when": "config.scmReviewed.showScmContextMenu && !(resourcePath in scmReviewed.reviewedPaths)",
           "group": "9_reviewed@1"
         },
         {
           "command": "scmReviewed.unmarkReviewed",
-          "when": "config.scmReviewed.showScmContextMenu",
+          "when": "config.scmReviewed.showScmContextMenu && resourcePath in scmReviewed.reviewedPaths",
           "group": "9_reviewed@2"
         }
       ],
       "explorer/context": [
         {
           "command": "scmReviewed.markReviewed",
-          "when": "!explorerResourceIsFolder",
+          "when": "!explorerResourceIsFolder && !(resourcePath in scmReviewed.reviewedPaths)",
           "group": "9_reviewed@1"
         },
         {
           "command": "scmReviewed.unmarkReviewed",
-          "when": "!explorerResourceIsFolder",
+          "when": "!explorerResourceIsFolder && resourcePath in scmReviewed.reviewedPaths",
           "group": "9_reviewed@2"
         },
         {
