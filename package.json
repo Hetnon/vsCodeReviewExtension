@@ -2,7 +2,7 @@
   "name": "file-reviewed-tracker",
   "displayName": "File Reviewed Tracker",
   "description": "Track which changed files you have already reviewed, from the Explorer and Source Control panes. Reviewed marks clear automatically when a file changes.",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "local",
   "license": "MIT",
   "private": true,
@@ -27,6 +27,11 @@
       {
         "command": "scmReviewed.unmarkReviewed",
         "title": "Unmark as Reviewed",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.reviewAndStage",
+        "title": "Review & Stage",
         "category": "SCM Reviewed"
       },
       {
@@ -80,46 +85,56 @@
     "menus": {
       "scm/resourceState/context": [
         {
-          "command": "scmReviewed.markReviewed",
-          "when": "config.scmReviewed.showScmContextMenu && !(resourcePath in scmReviewed.reviewedPaths)",
+          "command": "scmReviewed.reviewAndStage",
+          "when": "config.scmReviewed.showScmContextMenu",
           "group": "9_reviewed@1"
         },
         {
-          "command": "scmReviewed.unmarkReviewed",
-          "when": "config.scmReviewed.showScmContextMenu && resourcePath in scmReviewed.reviewedPaths",
+          "command": "scmReviewed.markReviewed",
+          "when": "config.scmReviewed.showScmContextMenu && !(resourcePath in scmReviewed.reviewedPaths)",
           "group": "9_reviewed@2"
+        },
+        {
+          "command": "scmReviewed.unmarkReviewed",
+          "when": "config.scmReviewed.showScmContextMenu && resourcePath in scmReviewed.trackedPaths",
+          "group": "9_reviewed@3"
         }
       ],
       "explorer/context": [
         {
-          "command": "scmReviewed.markReviewed",
-          "when": "!explorerResourceIsFolder && !(resourcePath in scmReviewed.reviewedPaths)",
+          "command": "scmReviewed.reviewAndStage",
+          "when": "!explorerResourceIsFolder",
           "group": "9_reviewed@1"
         },
         {
-          "command": "scmReviewed.unmarkReviewed",
-          "when": "!explorerResourceIsFolder && resourcePath in scmReviewed.reviewedPaths",
+          "command": "scmReviewed.markReviewed",
+          "when": "!explorerResourceIsFolder && !(resourcePath in scmReviewed.reviewedPaths)",
           "group": "9_reviewed@2"
+        },
+        {
+          "command": "scmReviewed.unmarkReviewed",
+          "when": "!explorerResourceIsFolder && resourcePath in scmReviewed.trackedPaths",
+          "group": "9_reviewed@3"
         },
         {
           "command": "scmReviewed.markFolderRecursive",
           "when": "explorerResourceIsFolder",
-          "group": "9_reviewed@1"
+          "group": "9_reviewed@4"
         },
         {
           "command": "scmReviewed.unmarkFolderRecursive",
           "when": "explorerResourceIsFolder",
-          "group": "9_reviewed@2"
+          "group": "9_reviewed@5"
         },
         {
           "command": "scmReviewed.markFolderChildren",
           "when": "explorerResourceIsFolder",
-          "group": "9_reviewed@3"
+          "group": "9_reviewed@6"
         },
         {
           "command": "scmReviewed.unmarkFolderChildren",
           "when": "explorerResourceIsFolder",
-          "group": "9_reviewed@4"
+          "group": "9_reviewed@7"
         }
       ],
       "view/title": [
@@ -148,6 +163,10 @@
         },
         {
           "command": "scmReviewed.unmarkReviewed",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.reviewAndStage",
           "when": "false"
         },
         {
@@ -192,12 +211,17 @@
         "scmReviewed.showScmContextMenu": {
           "type": "boolean",
           "default": true,
-          "description": "Show the Mark/Unmark as Reviewed actions in the Source Control resource context menu."
+          "description": "Show the Review & Stage / Mark / Unmark actions in the Source Control resource context menu."
         },
-        "scmReviewed.autoClearOnChange": {
+        "scmReviewed.warnOnStagingUnreviewed": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically clear a file's reviewed mark when its content changes after being marked."
+          "description": "Warn after staging files (via the native Stage buttons) that have not been reviewed, or that changed since they were reviewed."
+        },
+        "scmReviewed.stateFile": {
+          "type": "string",
+          "default": ".vscode/file-reviews.json",
+          "description": "Workspace-relative path of the committed file that stores reviewed state. Commit this file so reviewed marks travel across machines via push/pull."
         }
       }
     }

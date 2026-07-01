@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ReviewedStateManager } from './stateManager';
 import { Logger } from './logger';
 import { collectUris, resolveTargetFiles } from './resourceResolution';
-import { getChangedResourceUris } from './gitService';
+import { GitApi, getChangedResourceUris, stageFiles } from './gitService';
 
 function announce(message: string, logger: Logger): void {
   logger.info(message);
@@ -13,6 +13,7 @@ export function registerCommands(
   context: vscode.ExtensionContext,
   state: ReviewedStateManager,
   logger: Logger,
+  gitApi: GitApi | undefined,
 ): void {
   const register = (id: string, handler: (...args: unknown[]) => unknown): void => {
     context.subscriptions.push(vscode.commands.registerCommand(id, handler));
@@ -32,6 +33,30 @@ export function registerCommands(
     const files = await resolveTargetFiles(collectUris(args), true);
     const count = await state.unmark(files);
     announce(`Unmarked ${count} file(s).`, logger);
+  });
+
+  register('scmReviewed.reviewAndStage', async (...args) => {
+    const files = await resolveTargetFiles(collectUris(args), true);
+    if (files.length === 0) {
+      vscode.window.showWarningMessage('No files selected to review and stage.');
+      return;
+    }
+    await state.mark(files);
+    if (!gitApi) {
+      vscode.window.showWarningMessage('Marked reviewed, but the Git extension is unavailable — files were not staged.');
+      return;
+    }
+    try {
+      const staged = await stageFiles(gitApi, files, logger);
+      if (staged === 0) {
+        vscode.window.showWarningMessage('Marked reviewed, but nothing was staged (no owning Git repository found). See Output → File Reviewed Tracker.');
+        return;
+      }
+      announce(`Reviewed and staged ${staged} file(s).`, logger);
+    } catch (err) {
+      logger.error(`Staging failed: ${String(err)}`);
+      vscode.window.showErrorMessage(`Marked reviewed, but staging failed: ${String(err)}`);
+    }
   });
 
   register('scmReviewed.markFolderRecursive', async (...args) => {
@@ -59,7 +84,11 @@ export function registerCommands(
   });
 
   register('scmReviewed.markAllChanged', async () => {
-    const changed = await getChangedResourceUris(logger);
+    if (!gitApi) {
+      vscode.window.showWarningMessage('Git extension unavailable; cannot enumerate changed files.');
+      return;
+    }
+    const changed = getChangedResourceUris(gitApi);
     if (changed.length === 0) {
       vscode.window.showInformationMessage('No changed files to mark as reviewed.');
       return;
@@ -93,9 +122,8 @@ export function registerCommands(
       return;
     }
     const items = entries.map((entry) => ({
-      label: entry.relativePath,
-      description: new Date(entry.markedAt).toLocaleString(),
-      detail: entry.contentHash.slice(0, 12),
+      label: `${state.isStaleEntry(entry) ? '$(warning) ' : '$(check) '}${entry.relativePath}`,
+      description: state.isStaleEntry(entry) ? 'changed since review' : new Date(entry.markedAt).toLocaleString(),
       entry,
     }));
     const choice = await vscode.window.showQuickPick(items, {
@@ -110,8 +138,8 @@ export function registerCommands(
   });
 
   register('scmReviewed.refreshReviewed', async () => {
-    await state.revalidateAll();
-    announce('Re-validated reviewed files.', logger);
+    await state.loadFromDisk();
+    announce('Reloaded reviewed state.', logger);
   });
 
   register('scmReviewed.removeEntry', async (...args) => {

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "relativePath": "package.json",
+      "contentHash": "698a4f6419f05cf6f4ac54c77031b06ba1ef43bd",
+      "markedAt": 1782690419284
+    },
+    {
+      "relativePath": "README.md",
+      "contentHash": "e63de1e2a8fe31ccef89fb8b587276c8da27cd87",
+      "markedAt": 1782690408850
+    },
+    {
+      "relativePath": "src/gitService.ts",
+      "contentHash": "512da0afd652d9169dc43db942072e17f249a146",
+      "markedAt": 1782690673643
+    },
+    {
+      "relativePath": "src/reviewStore.ts",
+      "contentHash": "cb187d938518b5011de317109a388b845cd304c3",
+      "markedAt": 1782690456422
+    }
+  ]
+}
