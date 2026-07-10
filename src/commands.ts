@@ -59,6 +59,29 @@ export function registerCommands(
     }
   });
 
+  register('scmReviewed.stage', async (...args) => {
+    const files = await resolveTargetFiles(collectUris(args), true);
+    if (files.length === 0) {
+      vscode.window.showWarningMessage('No files selected to stage.');
+      return;
+    }
+    if (!gitApi) {
+      vscode.window.showWarningMessage('The Git extension is unavailable — files were not staged.');
+      return;
+    }
+    try {
+      const staged = await stageFiles(gitApi, files, logger);
+      if (staged === 0) {
+        vscode.window.showWarningMessage('Nothing was staged (no owning Git repository found). See Output → File Reviewed Tracker.');
+        return;
+      }
+      announce(`Staged ${staged} file(s).`, logger);
+    } catch (err) {
+      logger.error(`Staging failed: ${String(err)}`);
+      vscode.window.showErrorMessage(`Staging failed: ${String(err)}`);
+    }
+  });
+
   register('scmReviewed.markFolderRecursive', async (...args) => {
     const files = await resolveTargetFiles(collectUris(args), true);
     const count = await state.mark(files);

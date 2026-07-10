@@ -20,6 +20,11 @@
       "relativePath": "src/reviewStore.ts",
       "contentHash": "cb187d938518b5011de317109a388b845cd304c3",
       "markedAt": 1782690456422
+    },
+    {
+      "relativePath": "tsconfig.json",
+      "contentHash": "37c79e6dabe5ff86152f45b142077f007d52f5ee",
+      "markedAt": 1783397770381
     }
   ]
 }

@@ -2,7 +2,7 @@
   "name": "file-reviewed-tracker",
   "displayName": "File Reviewed Tracker",
   "description": "Track which changed files you have already reviewed, from the Explorer and Source Control panes. Reviewed marks clear automatically when a file changes.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "local",
   "license": "MIT",
   "private": true,
@@ -32,6 +32,11 @@
       {
         "command": "scmReviewed.reviewAndStage",
         "title": "Review & Stage",
+        "category": "SCM Reviewed"
+      },
+      {
+        "command": "scmReviewed.stage",
+        "title": "Stage",
         "category": "SCM Reviewed"
       },
       {
@@ -86,7 +91,12 @@
       "scm/resourceState/context": [
         {
           "command": "scmReviewed.reviewAndStage",
-          "when": "config.scmReviewed.showScmContextMenu",
+          "when": "config.scmReviewed.showScmContextMenu && scmResourceGroup != index && !(resourcePath in scmReviewed.reviewedPaths)",
+          "group": "9_reviewed@1"
+        },
+        {
+          "command": "scmReviewed.stage",
+          "when": "config.scmReviewed.showScmContextMenu && scmResourceGroup != index && resourcePath in scmReviewed.reviewedPaths",
           "group": "9_reviewed@1"
         },
         {
@@ -103,7 +113,12 @@
       "explorer/context": [
         {
           "command": "scmReviewed.reviewAndStage",
-          "when": "!explorerResourceIsFolder",
+          "when": "!explorerResourceIsFolder && resourcePath in scmReviewed.unstagedPaths && !(resourcePath in scmReviewed.reviewedPaths)",
+          "group": "9_reviewed@1"
+        },
+        {
+          "command": "scmReviewed.stage",
+          "when": "!explorerResourceIsFolder && resourcePath in scmReviewed.unstagedPaths && resourcePath in scmReviewed.reviewedPaths",
           "group": "9_reviewed@1"
         },
         {
@@ -167,6 +182,10 @@
         },
         {
           "command": "scmReviewed.reviewAndStage",
+          "when": "false"
+        },
+        {
+          "command": "scmReviewed.stage",
           "when": "false"
         },
         {

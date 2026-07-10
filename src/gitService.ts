@@ -9,11 +9,13 @@ export interface GitRepositoryState {
   workingTreeChanges: GitChange[];
   indexChanges: GitChange[];
   mergeChanges: GitChange[];
+  untrackedChanges?: GitChange[];
   onDidChange: vscode.Event<void>;
 }
 export interface GitRepository {
   rootUri: vscode.Uri;
   state: GitRepositoryState;
+  // The Git extension's public API `add` takes fs-path strings (it wraps each via Uri.file).
   add(paths: string[]): Promise<void>;
 }
 export interface GitApi {
@@ -61,7 +63,6 @@ export function getChangedResourceUris(api: GitApi): vscode.Uri[] {
 /** Stage the given files, grouping them by their owning repository. Returns how many were staged. */
 export async function stageFiles(api: GitApi, uris: vscode.Uri[], logger: Logger): Promise<number> {
   logger.info(`stageFiles: ${uris.length} file(s); ${api.repositories.length} repository(ies) open.`);
-  // The Git API's `add` takes file-system path strings, not URIs.
   const pathsByRepository = new Map<GitRepository, string[]>();
   for (const uri of uris) {
     const repository = api.getRepository(uri);

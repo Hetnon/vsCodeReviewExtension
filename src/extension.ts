@@ -8,6 +8,7 @@ import { ReviewedTreeProvider } from './reviewedTreeView';
 import { registerCommands } from './commands';
 import { getGitApi } from './gitService';
 import { StagingMonitor } from './stagingMonitor';
+import { GitStateContext } from './gitStateContext';
 
 const DEFAULT_STATE_FILE = '.vscode/file-reviews.json';
 
@@ -45,7 +46,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await state.initialize();
 
   if (gitApi) {
-    context.subscriptions.push(new StagingMonitor(gitApi, state, logger));
+    context.subscriptions.push(new StagingMonitor(gitApi, state, logger), new GitStateContext(gitApi));
   }
 
   logger.info('File Reviewed Tracker activated.');
