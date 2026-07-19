@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ReviewedEntry } from './types';
 import { Logger } from './logger';
+import { sanitizeReviewedEntries } from './stateValidation';
 
 interface ReviewFileShape {
   version: number;
@@ -14,18 +15,27 @@ interface ReviewFileShape {
  */
 export class ReviewStore {
   readonly fileUri: vscode.Uri;
+  readonly directoryUri: vscode.Uri;
+  readonly fileName: string;
   private lastSerialized: string | undefined;
 
   constructor(folder: vscode.Uri, relativeFilePath: string, private readonly logger: Logger) {
-    this.fileUri = vscode.Uri.joinPath(folder, ...relativeFilePath.split(/[\\/]+/));
+    const segments = relativeFilePath.split(/[\\/]+/).filter((segment) => segment.length > 0);
+    this.fileUri = vscode.Uri.joinPath(folder, ...segments);
+    this.directoryUri = vscode.Uri.joinPath(folder, ...segments.slice(0, -1));
+    this.fileName = segments[segments.length - 1];
   }
 
   async read(): Promise<ReviewedEntry[]> {
     try {
       const text = await this.readText();
       this.lastSerialized = text;
-      const parsed = JSON.parse(text) as ReviewFileShape;
-      return Array.isArray(parsed.entries) ? parsed.entries : [];
+      const parsed: unknown = JSON.parse(text);
+      const { entries, dropped } = sanitizeReviewedEntries(parsed);
+      if (dropped > 0) {
+        this.logger.warn(`Dropped ${dropped} invalid entry(ies) from ${this.fileUri.fsPath}.`);
+      }
+      return entries;
     } catch (err) {
       // A missing file is the normal first-run / fresh-clone case.
       if (!(err instanceof vscode.FileSystemError && err.code === 'FileNotFound')) {

@@ -37,7 +37,8 @@ export class GitStateContext {
       ];
       for (const group of groups) {
         for (const change of group) {
-          unstaged[change.uri.path] = true;
+          // fsPath, exact case: menu `when` clauses compare against the OS-native resourcePath.
+          unstaged[change.uri.fsPath] = true;
         }
       }
     }

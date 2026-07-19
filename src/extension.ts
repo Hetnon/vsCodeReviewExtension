@@ -9,6 +9,7 @@ import { registerCommands } from './commands';
 import { getGitApi } from './gitService';
 import { StagingMonitor } from './stagingMonitor';
 import { GitStateContext } from './gitStateContext';
+import { unsafeWorkspaceRelativePathReason } from './pathUtils';
 
 const DEFAULT_STATE_FILE = '.vscode/file-reviews.json';
 
@@ -22,9 +23,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     return;
   }
 
-  const stateFilePath = vscode.workspace
-    .getConfiguration('scmReviewed')
-    .get<string>('stateFile', DEFAULT_STATE_FILE);
+  const stateFilePath = resolveStateFilePath(logger);
   const store = new ReviewStore(folder.uri, stateFilePath, logger);
   const fingerprint = new FingerprintService(logger);
   const state = new ReviewedStateManager(store, fingerprint, logger);
@@ -56,6 +55,25 @@ export function deactivate(): void {
   // Disposables registered in `context.subscriptions` are cleaned up by VS Code.
 }
 
+/**
+ * The setting is workspace-scoped, so a cloned repo controls it: an absolute or
+ * ".."-escaping value would let every mark overwrite a file outside the workspace.
+ * Invalid values fall back to the default, loudly.
+ */
+function resolveStateFilePath(logger: Logger): string {
+  const configured = vscode.workspace
+    .getConfiguration('scmReviewed')
+    .get<string>('stateFile', DEFAULT_STATE_FILE);
+  const rejection = unsafeWorkspaceRelativePathReason(configured);
+  if (rejection === null) {
+    return configured;
+  }
+  const message = `Ignoring scmReviewed.stateFile "${configured}" (${rejection}); using the default "${DEFAULT_STATE_FILE}".`;
+  logger.warn(message);
+  void vscode.window.showWarningMessage(`File Reviewed Tracker: ${message}`);
+  return DEFAULT_STATE_FILE;
+}
+
 function registerWatchers(
   context: vscode.ExtensionContext,
   state: ReviewedStateManager,
@@ -65,9 +83,10 @@ function registerWatchers(
   const isStateFile = (uri: vscode.Uri): boolean => uri.toString() === store.fileUri.toString();
 
   // Reload review state when the repo file changes externally (pull, manual edit),
-  // but ignore the writes we made ourselves.
+  // but ignore the writes we made ourselves. RelativePattern's base must be a
+  // folder, so watch the parent directory for the state file's name.
   const stateFileWatcher = vscode.workspace.createFileSystemWatcher(
-    new vscode.RelativePattern(store.fileUri, '*'),
+    new vscode.RelativePattern(store.directoryUri, store.fileName),
   );
   const reloadIfExternal = async (): Promise<void> => {
     try {

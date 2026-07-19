@@ -10,8 +10,12 @@ Reviewed state is stored in a **committed file in the repository**, so your
 reviewed marks travel with your work across machines via `git push` / `git pull`.
 
 This extension is built for local desktop use on a Git repo. There is no
-Marketplace publishing, telemetry, or remote (SSH/WSL/Dev Container/Codespaces)
-support.
+telemetry. Virtual workspaces (e.g. GitHub Repositories) are not supported; in
+Restricted Mode (untrusted workspaces) the extension runs but ignores the
+workspace-level `scmReviewed.stateFile` setting.
+
+> The extension icon (`images/icon.png`) is a generated placeholder — replace
+> it with real artwork before a public release.
 
 ## What it does
 
@@ -63,7 +67,16 @@ All commands are under the **SCM Reviewed** category in the Command Palette.
 | `scmReviewed.showExplorerDecorations` | `true` | Show the tick decoration. Also governs the tick in the SCM pane, since both share VS Code's file-decoration mechanism. |
 | `scmReviewed.showScmContextMenu` | `true` | Show Review & Stage / Mark / Unmark in the Source Control resource context menu. |
 | `scmReviewed.warnOnStagingUnreviewed` | `true` | Warn after staging files (via the native Stage buttons) that are unreviewed or changed since review. |
-| `scmReviewed.stateFile` | `.vscode/file-reviews.json` | Workspace-relative path of the committed file storing reviewed state. |
+| `scmReviewed.stateFile` | `.vscode/file-reviews.json` | Workspace-relative path of the committed file storing reviewed state. Absolute paths and `..` segments are rejected (with a warning) and the default is used instead. |
+
+## Known limitations
+
+- **Concurrent writes to the state file are last-writer-wins.** A local mark
+  racing an external update (e.g. a `git pull` that changes
+  `file-reviews.json`) can drop entries from one side.
+- **Multi-root workspaces store state in the first workspace folder only.**
+  Marks for files in other roots are tracked, but they are all persisted to the
+  first folder's state file.
 
 ## How reviewed-state and invalidation work
 
@@ -139,15 +152,12 @@ installs permanently like any extension.
 ```bash
 npm install -g @vscode/vsce      # one-time, run anywhere
 npm run compile
-vsce package                     # produces file-reviewed-tracker-0.1.0.vsix
-code --install-extension file-reviewed-tracker-0.1.0.vsix
+vsce package                     # produces file-reviewed-tracker-<version>.vsix
+code --install-extension file-reviewed-tracker-<version>.vsix
 ```
 
 …or from the Extensions view → `...` menu → **Install from VSIX…**. Re-run these
 steps only when you change the code.
-
-> `vsce package` may warn about a missing repository field or LICENSE; those are
-> fine for a private build. Add `--allow-missing-repository` if it refuses.
 
 ## Tests
 

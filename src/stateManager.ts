@@ -3,7 +3,7 @@ import { ReviewedEntry } from './types';
 import { FingerprintService } from './fingerprintService';
 import { Logger } from './logger';
 import { ReviewStore } from './reviewStore';
-import { makeLookupKey, normalizeRelativePath } from './pathUtils';
+import { makeLookupKey, normalizeRelativePath, remapRelativePath } from './pathUtils';
 
 // Context keys consumed by menu `when` clauses via the `in` operator.
 // reviewedPaths = entries whose content still matches (green); trackedPaths = all entries.
@@ -116,23 +116,34 @@ export class ReviewedStateManager {
     }
   }
 
+  // A folder rename arrives as a single event with the folder URIs, so every
+  // entry is prefix-matched against it — not just exact file-key hits.
   async handleRename(renames: ReadonlyArray<{ oldUri: vscode.Uri; newUri: vscode.Uri }>): Promise<void> {
     const changed: vscode.Uri[] = [];
     for (const { oldUri, newUri } of renames) {
-      const oldKey = this.keyFor(oldUri);
-      const entry = this.entries.get(oldKey);
-      if (!entry) {
-        continue;
+      const oldBase = normalizeRelativePath(vscode.workspace.asRelativePath(oldUri));
+      const newBase = normalizeRelativePath(vscode.workspace.asRelativePath(newUri));
+      for (const [key, entry] of [...this.entries]) {
+        const newRelativePath = remapRelativePath(entry.relativePath, oldBase, newBase);
+        if (newRelativePath === null) {
+          continue;
+        }
+        const previousUri = this.uriForEntry(entry);
+        const wasStale = this.staleKeys.delete(key);
+        this.entries.delete(key);
+        const newEntry = { ...entry, relativePath: newRelativePath };
+        const newKey = makeLookupKey(newRelativePath);
+        this.entries.set(newKey, newEntry);
+        if (wasStale) {
+          this.staleKeys.add(newKey);
+        }
+        const currentUri = this.uriForEntry(newEntry);
+        for (const uri of [previousUri, currentUri]) {
+          if (uri) {
+            changed.push(uri);
+          }
+        }
       }
-      const wasStale = this.staleKeys.delete(oldKey);
-      this.entries.delete(oldKey);
-      const relativePath = normalizeRelativePath(vscode.workspace.asRelativePath(newUri));
-      const newKey = makeLookupKey(relativePath);
-      this.entries.set(newKey, { ...entry, relativePath });
-      if (wasStale) {
-        this.staleKeys.add(newKey);
-      }
-      changed.push(oldUri, newUri);
     }
     await this.persist(changed);
   }
@@ -208,9 +219,13 @@ export class ReviewedStateManager {
       if (!uri) {
         continue;
       }
-      tracked[uri.path] = true;
+      // Menus test `resourcePath in ...`, and resourcePath is the OS-native fsPath.
+      // Keys are exact-case: the `in` operator cannot case-fold at query time, but both
+      // sides come from vscode.Uri (lowercase drive letter, FS-enumerated casing), so
+      // they agree except after a case-only rename — which handleRename re-keys anyway.
+      tracked[uri.fsPath] = true;
       if (!this.staleKeys.has(makeLookupKey(entry.relativePath))) {
-        reviewed[uri.path] = true;
+        reviewed[uri.fsPath] = true;
       }
     }
     void vscode.commands.executeCommand('setContext', REVIEWED_CONTEXT_KEY, reviewed);
